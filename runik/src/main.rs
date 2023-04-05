@@ -28,7 +28,7 @@ use log::*;
 
 #[macro_use]
 mod console;
-pub mod batch;
+pub mod loader;
 mod panic;
 mod logging;
 mod sbi;
@@ -87,6 +87,6 @@ pub fn rust_main() -> ! {
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     arch::trap::init();
-    batch::init();
-    batch::run_next_app();
+    loader::init();
+    loader::run_app();
 }
