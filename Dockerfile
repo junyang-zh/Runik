@@ -84,13 +84,17 @@ RUN rustup target add riscv64gc-unknown-none-elf && \
 
 # 3. Download and add RISCV Toolchain (gdb, objdump, etc)
 WORKDIR /usr/local/
-ARG RV_TOOLCHAIN_HREF=https://static.dev.sifive.com/dev-tools/freedom-tools/v2020.12
-ARG RV_TOOLCHAIN=riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14
+ARG RV_TOOLCHAIN_HREF=https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2023.03.14
+ARG RV_TOOLCHAIN=riscv64-elf-ubuntu-22.04-nightly-2023.03.14-nightly
 RUN wget ${RV_TOOLCHAIN_HREF}/${RV_TOOLCHAIN}.tar.gz && \
     tar -xvf ${RV_TOOLCHAIN}.tar.gz && \
-    cp -r ${RV_TOOLCHAIN}/* . && \
-    rm -rf ${RV_TOOLCHAIN}.tar.gz
+    cp -r riscv/* . && \
+    rm -f ${RV_TOOLCHAIN}.tar.gz && \
+    rm -rf riscv
 WORKDIR ${HOME}
+
+# 4. Install llvm-clang
+RUN apt-get install -y llvm clang lld
 
 # 5. Clean up apt caches
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
