@@ -1,0 +1,15 @@
+.github
+.vscode
+.cargo
+Cargo.lock
+bootloader
+target
+runik/src/link_app.S
+runik/src/linker.ld
+runik/Cargo.lock
+runik/.gdb_history
+runik/.cargo
+user/build/
+user/target/
+user/Cargo.lock
+*.bak
