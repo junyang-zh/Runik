@@ -19,9 +19,12 @@
 #![no_std]
 #![no_main]
 #![feature(panic_info_message)]
+#![feature(alloc_error_handler)]
 
 #[macro_use]
 extern crate cfg_if;
+
+extern crate alloc;
 
 use core::arch::global_asm;
 use log::*;
@@ -35,6 +38,7 @@ mod sbi;
 mod sync;
 pub mod syscall;
 pub mod arch;
+pub mod mm;
 
 global_asm!(include_str!("link_app.S"));
 
@@ -87,6 +91,8 @@ pub fn rust_main() -> ! {
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     arch::trap::init();
+    mm::kernel_heap::init_heap();
+    mm::kernel_heap::heap_test();
     loader::init();
     loader::run_app();
 }
