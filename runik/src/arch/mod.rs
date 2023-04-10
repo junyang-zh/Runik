@@ -9,6 +9,8 @@ cfg_if! {
         pub mod trap;
         #[path = "riscv64/entry_point.rs"]
         pub mod entry_point;
+        #[path = "riscv64/paging.rs"]
+        pub mod paging;
     } else if #[cfg(target_arch = "aarch64")] {
         compile_error!("Arch `aarch64` not supported yet");
     } else {

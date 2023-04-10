@@ -2,7 +2,8 @@ use std::fs::{read_dir, File};
 use std::io::{Result, Write};
 use std::env;
 
-static TARGET_PATH: &str = "../user/target/riscv64gc-unknown-none-elf/release/";
+// static TARGET_PATH: &str = "../user/target/riscv64gc-unknown-none-elf/release/";
+static TARGET_PATH: &str = "../app/target/";
 
 fn main() {
     let platform = env::var("RUNIK_PLATFORM").unwrap();
@@ -13,14 +14,13 @@ fn main() {
         panic!("Platform {} not supported!", platform);
     }
     println!("cargo:rustc-link-arg=-T{}", linker_script_path);
-    println!("cargo:rerun-if-changed=../user/src/");
     println!("cargo:rerun-if-changed={}", TARGET_PATH);
     insert_app_data().unwrap();
 }
 
 fn insert_app_data() -> Result<()> {
     let mut f = File::create("src/link_app.S").unwrap();
-    let app = &read_dir("../user/src/bin")
+    let app = &read_dir(TARGET_PATH)
         .unwrap()
         .into_iter()
         .map(|dir_entry| {

@@ -9,6 +9,8 @@ KERNEL_BIN := $(KERNEL_ELF).bin
 # Building mode argument
 ifeq ($(MODE), release)
 	MODE_ARG := --release
+else ifeq ($(MODE), debug)
+	MODE_ARG :=
 endif
 
 # Utils

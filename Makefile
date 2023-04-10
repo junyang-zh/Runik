@@ -4,7 +4,7 @@ DOCKER_IMG_NAME ?= runik_dev
 # Building
 TARGET := riscv64gc-unknown-none-elf
 PLATFORM := qemu
-MODE := release
+MODE := debug
 KERNEL_ELF_RELATIVE := target/$(TARGET)/$(MODE)/runik
 
 # Running
@@ -28,7 +28,7 @@ DISASM ?= -x
 # Build commands
 
 build:
-	@make -C user build_app_bin
+	@make -C app build
 	@make -C runik \
 		TARGET=$(TARGET) \
 		PLATFORM=$(PLATFORM) \
