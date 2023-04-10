@@ -23,8 +23,7 @@ use core::arch::global_asm;
 #[macro_use]
 mod console;
 
-pub mod elf;
-pub mod loader;
+pub mod app;
 pub mod kernel_stack;
 mod kernel_panic;
 mod sbi;
@@ -55,24 +54,14 @@ pub fn rust_main() -> () {
     arch::trap::init();
     mm::init();
     // mm::kernel_heap::heap_test();
-    loader::init();
-    let mut app_manager = loader::APP_MANAGER.exclusive_access();
-    unsafe {
-        let elf_data = app_manager.load_app();
-        let (kernel_space, user_stack_base, entry_point) = crate::mm::addr_space::AddrSpace::new_with_elf(elf_data);
-        println!("[kernel] user_sp: {:p}, entry_p: {:p}", user_stack_base as *const usize, entry_point as *const usize);
-        app_manager.user_stack_base = user_stack_base;
-        app_manager.entry_point = entry_point;
-        kernel_space.activate();
-        println!("[kernel] Paging mode activated");
-        extern "C" {
-            fn __restore(cx_addr: usize);
-        }
-        __restore(kernel_stack::push_context(crate::arch::trap::TrapContext::app_init_context(
-            app_manager.entry_point,
-            app_manager.user_stack_base,
-        )) as *const _ as usize);
-    }
+    let app = app::App::load_from_img();
+    println!("[kernel] [trace] app entry point: {:#x}", app.get_entry_point());
+    let (kernel_space, user_stack_base) = crate::mm::addr_space::AddrSpace::new_with_elf(&app.elf_file);
+    println!("[kernel] [debug] user_sp: {:p}", user_stack_base as *const usize);
+    kernel_space.activate();
+    println!("[kernel] [trace] Paging mode activated");
+    println!("[kernel] [info] Running user's application");
+    app.run(user_stack_base);
     /*let kernel_space: Arc<UPIntrFreeCell<AddrSpace>> =
         Arc::new(unsafe { UPIntrFreeCell::new() });*/
 }

@@ -45,12 +45,16 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
             cx.sepc += 4;
             cx.x[10] = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]) as usize;
         }
+        Trap::Exception(Exception::LoadFault) | Trap::Exception(Exception::LoadPageFault) => {
+            println!("[kernel] Load PageFault (instr {:#x}; address {:#x}).", cx.sepc, stval);
+            shutdown(true);
+        }
         Trap::Exception(Exception::StoreFault) | Trap::Exception(Exception::StorePageFault) => {
-            println!("[kernel] PageFault in application, kernel killed it.");
+            println!("[kernel] Store PageFault (instr {:#x}; address {:#x}).", cx.sepc, stval);
             shutdown(true);
         }
         Trap::Exception(Exception::IllegalInstruction) => {
-            println!("[kernel] IllegalInstruction in application, kernel killed it.");
+            println!("[kernel] IllegalInstruction in application.");
             shutdown(true);
         }
         _ => {

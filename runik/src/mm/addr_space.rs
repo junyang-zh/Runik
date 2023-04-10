@@ -12,8 +12,8 @@ use alloc::vec::Vec;
 use core::arch::asm;
 //use lazy_static::*;
 use riscv::register::satp;
-
 use bitflags::bitflags;
+use xmas_elf::ElfFile;
 
 extern "C" {
     fn stext();
@@ -95,8 +95,8 @@ impl AddrSpace {
         self.segments.push(map_area);
     }
     /// Without kernel stacks.
-    /// also returns user_sp_base and entry point.
-    pub fn new_with_elf(elf_data: &[u8]) -> (Self, usize, usize)  {
+    /// also returns user_sp_base.
+    pub fn new_with_elf(elf: &ElfFile) -> (Self, usize)  {
         let mut addr_space = Self::new_bare();
         // map kernel sections
         println!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
@@ -169,7 +169,6 @@ impl AddrSpace {
             );
         }
         // map program headers of elf, with U flag
-        let elf = xmas_elf::ElfFile::new(elf_data).unwrap();
         let elf_header = elf.header;
         let magic = elf_header.pt1.magic;
         assert_eq!(magic, [0x7f, 0x45, 0x4c, 0x46], "invalid elf!");
@@ -207,7 +206,6 @@ impl AddrSpace {
         (
             addr_space,
             user_stack_base,
-            elf.header.pt2.entry_point() as usize,
         )
     }
     pub fn activate(&self) {
