@@ -28,7 +28,7 @@ extern "C" {
 }
 
 bitflags! {
-    #[derive(Copy, Clone)]
+    #[derive(Copy, Clone, Debug)]
     pub struct MapPermission: u8 {
         const R = 1 << 1;
         const W = 1 << 2;
@@ -37,15 +37,7 @@ bitflags! {
     }
 }
 
-/*lazy_static! {
-    pub static ref KERNEL_SPACE: Arc<UPIntrFreeCell<AddrSpace>> =
-        Arc::new(unsafe { UPIntrFreeCell::new(AddrSpace::new_kernel()) });
-}*/
-
-/*pub fn kernel_token() -> usize {
-    KERNEL_SPACE.exclusive_access().token()
-}*/
-
+#[derive(Debug)]
 pub struct AddrSpace {
     page_table: PageTable,
     segments: Vec<Segment>,
@@ -60,18 +52,6 @@ impl AddrSpace {
     }
     pub fn token(&self) -> usize {
         self.page_table.token()
-    }
-    /// Assume that no conflicts.
-    pub fn insert_framed_area(
-        &mut self,
-        start_va: VirtAddr,
-        end_va: VirtAddr,
-        permission: MapPermission,
-    ) {
-        self.push(
-            Segment::new(start_va, end_va, MapType::Framed, permission),
-            None,
-        );
     }
     pub fn remove_area_with_start_vpn(&mut self, start_vpn: VirtPageNum) {
         if let Some((idx, area)) = self
@@ -176,11 +156,10 @@ impl AddrSpace {
         let mut max_end_vpn = VirtPageNum(0);
         for i in 0..ph_count {
             let ph = elf.program_header(i).unwrap();
-            println!("[kernel] program header {}", ph);
             if ph.get_type().unwrap() == xmas_elf::program::Type::Load {
                 let start_va: VirtAddr = (ph.virtual_addr() as usize).into();
                 let end_va: VirtAddr = ((ph.virtual_addr() + ph.mem_size()) as usize).into();
-                let mut map_perm = MapPermission::U;
+                let mut map_perm = MapPermission::empty();
                 let ph_flags = ph.flags();
                 if ph_flags.is_read() {
                     map_perm |= MapPermission::R;
@@ -200,12 +179,22 @@ impl AddrSpace {
                 );
             }
         }
+        // Construct a RW user stack based on max_end_vpn
         let max_end_va: VirtAddr = max_end_vpn.into();
-        let mut user_stack_base: usize = max_end_va.into();
-        user_stack_base += PAGE_SIZE;
+        let user_stack_base_va: VirtAddr = (usize::from(max_end_va) + PAGE_SIZE).into();
+        println!("[kernel] mapping app stack {:?} {:?}", max_end_va, user_stack_base_va);
+        addr_space.push(
+            Segment::new(
+                max_end_va,
+                user_stack_base_va,
+                MapType::Framed,
+                MapPermission::R | MapPermission::W,
+            ),
+            None,
+        );
         (
             addr_space,
-            user_stack_base,
+            user_stack_base_va.into(),
         )
     }
     pub fn activate(&self) {
@@ -224,6 +213,7 @@ impl AddrSpace {
     }
 }
 
+#[derive(Debug)]
 pub struct Segment {
     vpn_range: VPNRange,
     data_frames: BTreeMap<VirtPageNum, FrameTracker>,

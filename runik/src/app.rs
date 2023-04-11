@@ -1,7 +1,7 @@
 //! App for binary apps
 
 use crate::kernel_stack;
-//use core::arch::asm;
+use core::arch::asm;
 use core::slice;
 use core::mem;
 use xmas_elf::ElfFile;
@@ -35,10 +35,12 @@ impl App<'_> {
 
     pub fn run(&self, user_stack_base: usize) {
         let entry_point = self.get_entry_point();
+        println!("[kernel] [trace] app entrypoint {:#x}", entry_point);
         unsafe {
             extern "C" {
                 fn __restore(cx_addr: usize);
             }
+            asm!("fence.i");
             __restore(kernel_stack::push_context(crate::arch::trap::TrapContext::app_init_context(
                 entry_point,
                 user_stack_base,
