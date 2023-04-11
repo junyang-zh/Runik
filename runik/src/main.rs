@@ -55,10 +55,9 @@ pub fn rust_main() -> () {
     mm::init();
     // mm::kernel_heap::heap_test();
     let app = app::App::load_from_img();
-    println!("[kernel] [trace] app entry point: {:#x}", app.get_entry_point());
-    let (kernel_space, user_stack_base) = crate::mm::addr_space::AddrSpace::new_with_elf(&app.elf_file);
+    let user_stack_base = crate::mm::addr_space::kspace_load_elf(&app.elf_file);
     println!("[kernel] [debug] user_sp: {:p}", user_stack_base as *const usize);
-    kernel_space.activate();
+    crate::mm::addr_space::kspace_activate();
     println!("[kernel] [trace] Paging mode activated");
     println!("[kernel] [info] Running user's application");
     app.run(user_stack_base);

@@ -5,12 +5,12 @@ use super::page_table::{ PTEFlags, PageTable, PageTableEntry };
 use super::addr::{ PhysPageNum, VirtAddr, VirtPageNum, StepByOne, VPNRange };
 use crate::plat::qemu::{ MMIO, MEMORY_END };
 use crate::arch::paging::PAGE_SIZE;
-//use crate::sync::UPIntrFreeCell;
+use crate::sync::UPSafeCell;
 use alloc::collections::BTreeMap;
-//use alloc::sync::Arc;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::arch::asm;
-//use lazy_static::*;
+use lazy_static::*;
 use riscv::register::satp;
 use bitflags::bitflags;
 use xmas_elf::ElfFile;
@@ -75,8 +75,7 @@ impl AddrSpace {
         self.segments.push(map_area);
     }
     /// Without kernel stacks.
-    /// also returns user_sp_base.
-    pub fn new_with_elf(elf: &ElfFile) -> (Self, usize)  {
+    pub fn new_with_kernel() -> Self  {
         let mut addr_space = Self::new_bare();
         // map kernel sections
         println!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
@@ -148,6 +147,10 @@ impl AddrSpace {
                 None,
             );
         }
+        addr_space
+    }
+    /// also returns user_sp_base (brk).
+    pub fn load_elf(&mut self, elf: &ElfFile) -> usize {
         // map program headers of elf, with U flag
         let elf_header = elf.header;
         let magic = elf_header.pt1.magic;
@@ -174,7 +177,7 @@ impl AddrSpace {
                 println!("[kernel] mapping app {:?} {:?}", start_va, end_va);
                 let map_area = Segment::new(start_va, end_va, MapType::Framed, map_perm);
                 max_end_vpn = map_area.vpn_range.get_end();
-                addr_space.push(
+                self.push(
                     map_area,
                     Some(&elf.input[ph.offset() as usize..(ph.offset() + ph.file_size()) as usize]),
                 );
@@ -184,7 +187,7 @@ impl AddrSpace {
         let max_end_va: VirtAddr = max_end_vpn.into();
         let user_stack_base_va: VirtAddr = (usize::from(max_end_va) + PAGE_SIZE).into();
         println!("[kernel] mapping app stack {:?} {:?}", max_end_va, user_stack_base_va);
-        addr_space.push(
+        self.push(
             Segment::new(
                 max_end_va,
                 user_stack_base_va,
@@ -193,10 +196,7 @@ impl AddrSpace {
             ),
             None,
         );
-        (
-            addr_space,
-            user_stack_base_va.into(),
-        )
+        user_stack_base_va.into()
     }
     pub fn activate(&self) {
         let satp = self.page_table.token();
@@ -312,4 +312,45 @@ pub enum MapType {
     Framed,
     /// offset of page num
     Linear(isize),
+}
+
+lazy_static! {
+    /// a memory set instance through lazy_static! managing kernel space
+    pub static ref KERNEL_SPACE: Arc<UPSafeCell<AddrSpace>> =
+        Arc::new(unsafe { UPSafeCell::new(AddrSpace::new_with_kernel()) });
+}
+
+/// Load the kernel space with elf file
+pub fn kspace_load_elf(elf: &ElfFile) -> usize {
+    let mut kernel_space = KERNEL_SPACE.exclusive_access();
+    kernel_space.load_elf(elf)
+}
+
+/// Activate sv39
+pub fn kspace_activate() {
+    let kernel_space = KERNEL_SPACE.exclusive_access();
+    kernel_space.activate();
+}
+
+pub fn kspace_from_user_buffer(ptr: *const u8, len: usize) -> Vec<&'static mut [u8]> {
+    let kernel_space = KERNEL_SPACE.exclusive_access();
+    let page_table = &kernel_space.page_table;
+    let mut start = ptr as usize;
+    let end = start + len;
+    let mut v = Vec::new();
+    while start < end {
+        let start_va = VirtAddr::from(start);
+        let mut vpn = start_va.floor();
+        let ppn = page_table.translate(vpn).unwrap().ppn();
+        vpn.step();
+        let mut end_va: VirtAddr = vpn.into();
+        end_va = end_va.min(VirtAddr::from(end));
+        if end_va.page_offset() == 0 {
+            v.push(&mut ppn.get_bytes_array()[start_va.page_offset()..]);
+        } else {
+            v.push(&mut ppn.get_bytes_array()[start_va.page_offset()..end_va.page_offset()]);
+        }
+        start = end_va.into();
+    }
+    v
 }
