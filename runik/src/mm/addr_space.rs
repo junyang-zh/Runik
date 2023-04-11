@@ -159,7 +159,8 @@ impl AddrSpace {
             if ph.get_type().unwrap() == xmas_elf::program::Type::Load {
                 let start_va: VirtAddr = (ph.virtual_addr() as usize).into();
                 let end_va: VirtAddr = ((ph.virtual_addr() + ph.mem_size()) as usize).into();
-                let mut map_perm = MapPermission::empty();
+                // let mut map_perm = MapPermission::empty();
+                let mut map_perm = MapPermission::U;
                 let ph_flags = ph.flags();
                 if ph_flags.is_read() {
                     map_perm |= MapPermission::R;
@@ -188,7 +189,7 @@ impl AddrSpace {
                 max_end_va,
                 user_stack_base_va,
                 MapType::Framed,
-                MapPermission::R | MapPermission::W,
+                MapPermission::R | MapPermission::W | MapPermission::U,
             ),
             None,
         );

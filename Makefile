@@ -37,7 +37,7 @@ build:
 		build_kernel_bin
 
 clean:
-	@make -C user clean
+	@make -C app clean
 	@make -C runik clean
 
 # Docker commands

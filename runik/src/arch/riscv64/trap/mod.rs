@@ -53,6 +53,10 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
             println!("[kernel] Store PageFault (instr {:#x}; address {:#x}).", cx.sepc, stval);
             shutdown(true);
         }
+        Trap::Exception(Exception::InstructionPageFault) => {
+            println!("[kernel] Instruction PageFault (instr {:#x}; address {:#x}).", cx.sepc, stval);
+            shutdown(true);
+        }
         Trap::Exception(Exception::IllegalInstruction) => {
             println!("[kernel] IllegalInstruction in application.");
             shutdown(true);

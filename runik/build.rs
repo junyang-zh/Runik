@@ -14,7 +14,7 @@ fn main() {
         panic!("Platform {} not supported!", platform);
     }
     println!("cargo:rustc-link-arg=-T{}", linker_script_path);
-    println!("cargo:rerun-if-changed={}", TARGET_PATH);
+    println!("cargo:rerun-if-changed={}/*", TARGET_PATH);
     insert_app_data().unwrap();
 }
 
