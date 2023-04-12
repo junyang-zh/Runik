@@ -1,6 +1,7 @@
 .github
 .vscode
 .cargo
+.DS_Store
 Cargo.lock
 bootloader
 target

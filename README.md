@@ -35,6 +35,4 @@ make run
 
 ### Building with arbitrary ELF binary
 
-**NOT FINISHED YET**
-
-You should put the target app under the `user` directory.
+You should put the target app under the `app/target` directory. I made some test cases in `app` that could be compiled and placed into that directory using makefile.
