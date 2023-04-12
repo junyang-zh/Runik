@@ -1,6 +1,6 @@
 # Runik: A ELF binary-compilant unikernel written in Rust
 
-This is a work as the bachelor's thesis of Junyang Zhang.
+This is a work as a part of the bachelor's thesis of Junyang Zhang.
 
 Runik is a unikernel written in Rust. It aims to provide a posix-compliant interface for prebuilt binaries, enabling a single application running above a hypervisor. The application and the library os code will run in the same address space.
 
