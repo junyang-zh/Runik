@@ -82,15 +82,17 @@ RUN rustup target add riscv64gc-unknown-none-elf && \
     rustup component add rust-src && \
     rustup component add llvm-tools-preview
 
-# 3. Download and add RISCV Toolchain (gdb, objdump, etc)
+# 3. Download and add RISCV Toolchains (gdb, objdump, etc)
 WORKDIR /usr/local/
-ARG RV_TOOLCHAIN_HREF=https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2023.03.14
-ARG RV_TOOLCHAIN=riscv64-elf-ubuntu-22.04-nightly-2023.03.14-nightly
-RUN wget ${RV_TOOLCHAIN_HREF}/${RV_TOOLCHAIN}.tar.gz && \
-    tar -xvf ${RV_TOOLCHAIN}.tar.gz && \
-    cp -r riscv/* . && \
-    rm -f ${RV_TOOLCHAIN}.tar.gz && \
-    rm -rf riscv
+ARG RV_TOOLCHAINS_HREF=https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2023.04.29
+ARG RV_TOOLCHAINS="riscv64-elf-ubuntu-22.04-nightly-2023.04.29-nightly riscv64-glibc-ubuntu-22.04-nightly-2023.04.29-nightly"
+RUN for RV_TOOLCHAIN in ${RV_TOOLCHAINS}; do \
+        wget ${RV_TOOLCHAINS_HREF}/${RV_TOOLCHAIN}.tar.gz && \
+        tar -xvf ${RV_TOOLCHAIN}.tar.gz && \
+        cp -r riscv/* . && \
+        rm -f ${RV_TOOLCHAIN}.tar.gz && \
+        rm -rf riscv; \
+    done
 WORKDIR ${HOME}
 
 # 4. Install llvm-clang

@@ -5,6 +5,7 @@ authors = ["Junyang Zhang <mail@junyang.me>"]
 edition = "2021"
 
 [dependencies]
+linuxabi = { path = "../linuxabi" }
 cfg-if = "1.0.0"
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 bitflags = "2.1.0"
