@@ -16,3 +16,6 @@ xmas-elf = "0.9.0"
 [target.'cfg(any(target_arch = "riscv32", target_arch = "riscv64"))'.dependencies]
 riscv = "0.10.1"
 sbi-rt = { version = "0.0.2", features = ["legacy"] }
+
+[build-dependencies]
+binsa = { path = "../binsa" }

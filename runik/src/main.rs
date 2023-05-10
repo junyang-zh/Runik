@@ -11,6 +11,7 @@
 #![no_main]
 #![feature(panic_info_message)]
 #![feature(alloc_error_handler)]
+#![allow(unused)]
 
 #[macro_use]
 extern crate cfg_if;
