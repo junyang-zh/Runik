@@ -13,10 +13,12 @@
 use crate::arch::syscall::ids::*;
 
 mod fs;
+mod mm;
 mod process;
 
 use fs::*;
 use process::*;
+use mm::*;
 
 /// handle syscall exception with `syscall_id` and other arguments
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
@@ -27,6 +29,8 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
         SYSCALL_WRITE => sys_write(args[0], args[1] as *const u8, args[2]),
         #[cfg(syscall93)]
         SYSCALL_EXIT => sys_exit(args[0] as i32),
+        #[cfg(syscall214)]
+        SYSCALL_BRK => { println!("sys_brk {:#x}", args[0]); sys_brk(args[0] as *const u8) },
         _ => panic!("Unsupported syscall_id: {}", syscall_id),
     }
 }
