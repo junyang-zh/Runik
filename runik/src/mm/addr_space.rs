@@ -67,10 +67,10 @@ impl AddrSpace {
     /// Add a new Segment into this AddrSpace.
     /// Assuming that there are no conflicts in the virtual address
     /// space.
-    pub fn push(&mut self, mut map_area: Segment, data: Option<&[u8]>) {
+    pub fn push(&mut self, mut map_area: Segment, data: Option<(VirtAddr, &[u8])>) {
         map_area.map(&mut self.page_table);
-        if let Some(data) = data {
-            map_area.copy_data(&mut self.page_table, data);
+        if let Some((va, data)) = data {
+            map_area.copy_data(&mut self.page_table, va, data);
         }
         self.segments.push(map_area);
     }
@@ -180,7 +180,7 @@ impl AddrSpace {
                 max_end_vpn = map_area.vpn_range.get_end();
                 self.push(
                     map_area,
-                    Some(&elf.input[ph.offset() as usize..(ph.offset() + ph.file_size()) as usize]),
+                    Some((start_va, (&elf.input[ph.offset() as usize..(ph.offset() + ph.file_size()) as usize]))),
                 );
                 // We should zero out the .bss section if there is any
                 if ph.file_size() < ph.mem_size() {
@@ -193,7 +193,7 @@ impl AddrSpace {
         }
         // Construct a RW user stack based on max_end_vpn
         let max_end_va: VirtAddr = max_end_vpn.into();
-        let user_stack_base_va: VirtAddr = (usize::from(max_end_va) + PAGE_SIZE).into();
+        let user_stack_base_va: VirtAddr = (usize::from(max_end_va) + PAGE_SIZE - 0x10).into();
         println!("[kernel] mapping app stack {:?} {:?}", max_end_va, user_stack_base_va);
         self.push(
             Segment::new(
@@ -291,41 +291,49 @@ impl Segment {
         }
     }
     /// data: start-aligned but maybe with shorter length
-    pub fn copy_data(&mut self, page_table: &mut PageTable, data: &[u8]) {
+    pub fn copy_data(&mut self, page_table: &mut PageTable, start: VirtAddr, data: &[u8]) {
         assert_eq!(self.map_type, MapType::Framed);
-        let mut start: usize = 0;
-        let mut current_vpn = self.vpn_range.get_start();
-        let len = data.len();
+        let mut i = 0; // data index
+        let size = data.len();
+        let end: VirtAddr = start + (size as isize);
+        let mut cur = VirtAddr::from(start.floor());
+        let mut cur_vpn = start.floor();
+        assert!(self.vpn_range.get_start() <= cur_vpn, "Addr not in range in zero_out(), underflow!");
+        assert!(cur_vpn < self.vpn_range.get_end(), "Addr not in range in zero_out(), overflow!");
         loop {
-            let src = &data[start..len.min(start + PAGE_SIZE)];
+            let slice_start = usize::from(start.max(cur)) - usize::from(cur);
+            let slice_end = usize::from(end.min(cur + (PAGE_SIZE as isize))) - usize::from(cur);
+            let src = &data[i..i + slice_end - slice_start];
             let dst = &mut page_table
-                .translate(current_vpn)
+                .translate(cur_vpn)
                 .unwrap()
                 .ppn()
-                .get_bytes_array()[..src.len()];
+                .get_bytes_array()[slice_start..slice_end];
             dst.copy_from_slice(src);
-            start += PAGE_SIZE;
-            if start >= len {
+            cur += PAGE_SIZE as isize;
+            i += slice_end - slice_start;
+            if i >= size || cur >= end || cur_vpn >= self.vpn_range.get_end() {
                 break;
             }
-            current_vpn.step();
+            cur_vpn.step();
         }
     }
     /// like memset [start, start + size) with zero, helpful when clearing .bss
     pub fn zero_out(&mut self, page_table: &mut PageTable, start: VirtAddr, size: usize) {
         assert_eq!(self.map_type, MapType::Framed);
-        let mut cur: VirtAddr = start;
         let end: VirtAddr = start + (size as isize);
+        let mut cur = VirtAddr::from(start.floor());
         let mut cur_vpn = start.floor();
         assert!(self.vpn_range.get_start() <= cur_vpn, "Addr not in range in zero_out(), underflow!");
         assert!(cur_vpn < self.vpn_range.get_end(), "Addr not in range in zero_out(), overflow!");
         loop {
-            let len = (end.min(cur + (PAGE_SIZE as isize)) - cur) as usize;
+            let slice_start = usize::from(start.max(cur)) - usize::from(cur);
+            let slice_end = usize::from(end.min(cur + (PAGE_SIZE as isize))) - usize::from(cur);
             let dst = &mut page_table
                 .translate(cur_vpn)
                 .unwrap()
                 .ppn()
-                .get_bytes_array()[..len];
+                .get_bytes_array()[slice_start..slice_end];
             dst.fill(0);
             cur += PAGE_SIZE as isize;
             if cur >= end || cur_vpn >= self.vpn_range.get_end() {
