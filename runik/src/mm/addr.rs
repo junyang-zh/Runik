@@ -4,6 +4,8 @@ use super::page_table::PageTableEntry;
 
 use core::fmt::{ self, Debug, Formatter };
 
+use core::ops::{ Add, Sub, AddAssign };
+
 /// Definitions
 #[repr(C)]
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
@@ -176,6 +178,57 @@ impl PhysPageNum {
     pub fn get_mut<T>(&self) -> &'static mut T {
         let pa: PhysAddr = (*self).into();
         pa.get_mut()
+    }
+}
+
+impl<Rhs> Add<Rhs> for VirtAddr
+where isize: From<Rhs>
+{
+    type Output = VirtAddr;
+    fn add(self, rhs: Rhs) -> Self::Output {
+        let offset = isize::from(rhs);
+        if offset < 0 {
+            VirtAddr::from(self.0 - ((-offset) as usize))
+        }
+        else {
+            VirtAddr::from(self.0 + (offset as usize))
+        }
+    }
+}
+
+impl<Rhs> Sub<Rhs> for VirtAddr
+where isize: From<Rhs>
+{
+    type Output = VirtAddr;
+    fn sub(self, rhs: Rhs) -> Self::Output {
+        let offset = isize::from(rhs);
+        if offset < 0 {
+            VirtAddr::from(self.0 + ((-offset) as usize))
+        }
+        else {
+            VirtAddr::from(self.0 - (offset as usize))
+        }
+    }
+}
+
+impl<Rhs> AddAssign<Rhs> for VirtAddr
+where isize: From<Rhs>
+{
+    fn add_assign(&mut self, rhs: Rhs) {
+        *self = *self + rhs;
+    }
+}
+
+impl Sub<VirtAddr> for VirtAddr
+{
+    type Output = isize;
+    fn sub(self, rhs: VirtAddr) -> Self::Output {
+        if self > rhs {
+            (self.0 - rhs.0) as isize
+        }
+        else {
+            -((rhs.0 - self.0) as isize)
+        }
     }
 }
 

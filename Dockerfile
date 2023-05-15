@@ -19,11 +19,13 @@ RUN wget https://download.qemu.org/qemu-${QEMU_VERSION}.tar.xz && \
 
 # 1.2. Install dependencies
 # - https://risc-v-getting-started-guide.readthedocs.io/en/latest/linux-qemu.html#prerequisites
-RUN apt-get install -y \
+RUN apt-get update && \
+    apt-get install -y \
         autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev \
         gawk build-essential bison flex texinfo gperf libtool patchutils bc \
         zlib1g-dev libexpat-dev python3.10-dev \
-        ninja-build pkg-config libglib2.0-dev libpixman-1-dev libsdl2-dev
+        ninja-build pkg-config libglib2.0-dev libpixman-1-dev libsdl2-dev \
+        libslirp-dev
 
 # 1.3. Build and install from source
 WORKDIR ${HOME}/qemu-${QEMU_VERSION}
