@@ -2,8 +2,7 @@
 
 build:
 	@mkdir -p target
-	@riscv64-unknown-elf-gcc hello_world_libc.c -o target/hello_world.bin
-	@echo "App hello_world built!"
+	@riscv64-unknown-elf-gcc hello_world.c -o target/hello_world.bin
 
 clean:
 	@rm -rf target
