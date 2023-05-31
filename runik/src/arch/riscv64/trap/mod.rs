@@ -1,9 +1,9 @@
 //! Trap handling functionality
 //!
-//! We have a single trap entry point, namely `__alltraps`. At
+//! We have a single trap entry point, namely `__trap_handler`. At
 //! initialization in [`init()`], we set the `stvec` CSR to point to it.
 //!
-//! All traps go through `__alltraps`, which is defined in `trap.S`. The
+//! All traps go through `__trap_handler`, which is defined in `trap.S`. The
 //! assembly language code does just enough work restore the kernel space
 //! context, ensuring that Rust code safely runs, and transfers control to
 //! [`trap_handler()`].
@@ -25,13 +25,13 @@ use riscv::register::{
 
 global_asm!(include_str!("trap.S"));
 
-/// initialize CSR `stvec` as the entry of `__alltraps`
+/// initialize CSR `stvec` as the entry of `__trap_handler`
 pub fn init() {
     extern "C" {
-        fn __alltraps();
+        fn __trap_handler();
     }
     unsafe {
-        stvec::write(__alltraps as usize, TrapMode::Direct);
+        stvec::write(__trap_handler as usize, TrapMode::Direct);
     }
 }
 

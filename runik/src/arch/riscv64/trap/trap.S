@@ -6,10 +6,10 @@
     ld x\n, \n*8(sp)
 .endm
     .section .text
-    .globl __alltraps
+    .globl __trap_handler
     .globl __restore
     .align 2
-__alltraps:
+__trap_handler:
     csrrw sp, sscratch, sp
     # now sp->kernel stack, sscratch->user stack
     # allocate a TrapContext on kernel stack
